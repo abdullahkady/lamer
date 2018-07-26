@@ -18,7 +18,7 @@ module.exports.test = (req, res, next) => {
   child.on('error', (err) => {
     console.log(err);
   });
-}
+};
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -27,15 +27,15 @@ module.exports.test = (req, res, next) => {
   * https://github.com/jankarres/node-lame
 */
 
-extractProgress = (data) => {
+const extractProgress = (data) => {
   if (data.length > 6) {
     if (data.search(/[0-9]{1,10}\/[0-9]{1,10}/) > -1) {
       const progressMatch = data.match(/[0-9]{1,10}\/[0-9]{1,10}/);
-      const progressAbsolute = progressMatch[0].split("/");
+      const progressAbsolute = progressMatch[0].split('/');
       const progress = Math.floor(Number(progressAbsolute[0]) / Number(progressAbsolute[1]) * 100);
       if (!isNaN(progress)) {
         return progress;
       }
     }
   }
-}
+};
