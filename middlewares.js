@@ -6,9 +6,9 @@ module.exports.fileExists = (req, res, next) => {
       next();
     } else {
       return res.status(404).json({
-        err: "File not found",
+        err: 'File not found',
         data: null
       });
     }
-  })
-}
+  });
+};
