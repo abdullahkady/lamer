@@ -1,9 +1,23 @@
 
 const { spawn } = require('child_process');
 const uuidv4 = require('uuid/v4');
+/////////////////////////////////////////         MULTER        /////////////////////////////////////////
+const maxSize = 1024 * 1024 * 1024;
+const multer = require('multer');
+const upload = multer({
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype === 'audio/mpeg' && (file.originalname).toLowerCase().split('.').pop() === 'mp3') {
+      return cb(null, true);
+    }
+    cb('Error: File upload only supports mp3');
+  },
+  limits: { fileSize: maxSize, },
+  dest: './uploads'
+}).single('audioFile');
 
 
-module.exports.test = (req, res, next) => {
+
+module.exports.encode = (req, res, next) => {
   const outputFileName = uuidv4() + '.mp3';
   const child = spawn('lame', ['-b ' + req.params.bitRate, req.params.inputFile, outputFileName], { cwd: process.env.ROOT_DIRECTORY });
   child.stderr.on('data', (data) => {
@@ -17,6 +31,24 @@ module.exports.test = (req, res, next) => {
   });
   child.on('error', (err) => {
     console.log(err);
+  });
+};
+
+module.exports.upload = (req, res) => {
+  upload(req, res, err => {
+    if (err) {
+      return res.status(404).json({
+        err
+      });
+    }
+    if (!req.file) {
+      return res.status(422).json({
+        err: 'NO FILE SUPPLIED'
+      });
+    }
+    return res.status(200).json({
+      msg: 'File uploaded'
+    });
   });
 };
 
