@@ -1,5 +1,4 @@
 require('dotenv').config();
-const middlewares = require('./middlewares');
 const controllers = require('./controllers');
 
 ///////////////////////////////////////// EXPRESS & MIDDLEWARES /////////////////////////////////////////
@@ -17,9 +16,9 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(compress());
 app.use(helmet());
 app.use(cors());
-///////////////////////////////////////// EXPRESS & MIDDLEWARES /////////////////////////////////////////
 
-app.get('/test/:bitRate/:inputFile', middlewares.fileExists, controllers.test);
+app.post('/encode/:bitRate/:inputFile', controllers.encode);
+app.post('/upload', controllers.upload);
 
 app.listen(process.env.PORT, () => console.log(`Listening on port ${process.env.PORT}`));
 
