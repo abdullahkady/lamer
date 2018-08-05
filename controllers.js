@@ -12,7 +12,10 @@ const upload = multer({
     cb('Error: File upload only supports mp3');
   },
   limits: { fileSize: maxSize, },
-  dest: './uploads'
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => cb(null, './uploads'),
+    filename: (req, file, cb) => cb(null, uuidv4() + '.mp3')
+  })
 }).single('audioFile');
 
 
@@ -35,7 +38,7 @@ module.exports.encode = (req, res, next) => {
 };
 
 module.exports.upload = (req, res) => {
-  upload(req, res, err => {
+  upload(req, res, (err) => {
     if (err) {
       return res.status(404).json({
         err
@@ -47,7 +50,7 @@ module.exports.upload = (req, res) => {
       });
     }
     return res.status(200).json({
-      msg: 'File uploaded'
+      data: { fileName: req.file.filename }
     });
   });
 };
