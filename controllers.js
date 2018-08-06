@@ -6,7 +6,7 @@ const maxSize = 1024 * 1024 * 1024;
 const multer = require('multer');
 const upload = multer({
   fileFilter: (req, file, cb) => {
-    if (file.mimetype === 'audio/mpeg' && (file.originalname).toLowerCase().split('.').pop() === 'mp3') {
+    if ((file.mimetype === 'audio/mpeg' || file.mimetype === 'audio/mp3') && (file.originalname).toLowerCase().split('.').pop() === 'mp3') {
       return cb(null, true);
     }
     cb('Error: File upload only supports mp3');
