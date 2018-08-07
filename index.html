@@ -42,12 +42,11 @@
   <script>
     const response = document.querySelector('#response');
     const PORT = 9191;
-    const url = `localhost:${PORT}/upload`;
     const uploadFile = () => {
       const formData = new FormData();
       const fileInput = document.querySelector('#file');
       const bitRate = document.querySelector('#bitRate').value;
-
+      const originalFileName = fileInput.files[0].name;
       formData.append("audioFile", fileInput.files[0]);
       axios.post('upload', formData, {
         headers: {
@@ -60,20 +59,20 @@
             response.innerText = data + '%';
           });
           socket.on('done', (outputFile) => {
-            response.innerText = outputFile;
-            // axios({
-            // url: `download/${outputFile}`,
-            // method: 'GET',
-            // responseType: 'blob'
-            // }).then(response => {
-            // const url = window.URL.createObjectURL(new Blob([response.data]));
-            // const link = document.createElement('a');
-            // link.href = url;
-            // link.setAttribute('download', res.data.data.fileName);
-            // document.body.appendChild(link);
-            // link.click();
-            // document.removeChild(link);
-            // })
+            response.innerText = 'Done, download should start soon';
+            axios({
+              url: `download/${outputFile}`,
+              method: 'GET',
+              responseType: 'blob'
+            }).then(response => {
+              const url = window.URL.createObjectURL(new Blob([response.data]));
+              const link = document.createElement('a');
+              link.href = url;
+              link.setAttribute('download', originalFileName);
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+            })
           })
         })
     }
