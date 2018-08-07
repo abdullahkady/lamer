@@ -18,10 +18,9 @@ app.use(helmet());
 app.use(cors());
 
 app.get('/', (req, res) => res.sendFile(__dirname + '/index.html'));
-app.post('/encode/:bitRate/:inputFile', controllers.encode);
 app.post('/upload', controllers.upload);
 
-app.listen(process.env.PORT, () => console.log(`Listening on port ${process.env.PORT}`));
+const server = app.listen(process.env.PORT, () => console.log(`Listening on port ${process.env.PORT}`));
 
-
-
+const io = require('socket.io')(server);
+io.on('connection', controllers.encode);
