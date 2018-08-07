@@ -20,17 +20,18 @@ const upload = multer({
 
 
 
-module.exports.encode = (req, res, next) => {
-  const outputFileName = uuidv4() + '.mp3';
-  const child = spawn('lame', ['-b ' + req.params.bitRate, req.params.inputFile, outputFileName], { cwd: process.env.ROOT_DIRECTORY });
+module.exports.encode = (socket) => {
+  const bitRate = socket.handshake.query.bitRate;
+  const fileName = socket.handshake.query.file;
+  const child = spawn('lame', ['-b ' + bitRate, fileName, 'o-' + fileName], { cwd: process.env.ROOT_DIRECTORY });
   child.stderr.on('data', (data) => {
     let progress = extractProgress(data = data.toString().trim());
     if (progress) {
-      console.log(progress);
+      socket.emit('progress', progress);
     }
   });
   child.on('exit', (code, signal) => {
-    return res.sendFile(process.env.ROOT_DIRECTORY + outputFileName);
+    socket.emit('done', fileName);
   });
   child.on('error', (err) => {
     console.log(err);
