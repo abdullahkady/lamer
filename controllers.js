@@ -4,6 +4,7 @@ const uuidv4 = require('uuid/v4');
 /////////////////////////////////////////         MULTER        /////////////////////////////////////////
 const maxSize = 1024 * 1024 * 1024;
 const multer = require('multer');
+const fs = require('fs');
 const upload = multer({
   fileFilter: (req, file, cb) => {
     if ((file.mimetype === 'audio/mpeg' || file.mimetype === 'audio/mp3') && (file.originalname).toLowerCase().split('.').pop() === 'mp3') {
@@ -23,18 +24,41 @@ const upload = multer({
 module.exports.encode = (socket) => {
   const bitRate = socket.handshake.query.bitRate;
   const fileName = socket.handshake.query.file;
-  const child = spawn('lame', ['-b ' + bitRate, fileName, 'o-' + fileName], { cwd: process.env.ROOT_DIRECTORY });
-  child.stderr.on('data', (data) => {
-    let progress = extractProgress(data = data.toString().trim());
-    if (progress) {
-      socket.emit('progress', progress);
+  fs.exists(process.env.ROOT_DIRECTORY + fileName, exists => {
+    if (exists) {
+      const child = spawn('lame', ['-b ' + bitRate, fileName, 'o-' + fileName], { cwd: process.env.ROOT_DIRECTORY });
+      child.stderr.on('data', (data) => {
+        let progress = extractProgress(data = data.toString().trim());
+        if (progress) {
+          socket.emit('progress', progress);
+        }
+      });
+      child.on('exit', (code, signal) => {
+        socket.emit('done', fileName);
+      });
+      child.on('error', (err) => {
+        console.log(err);
+      });
     }
   });
-  child.on('exit', (code, signal) => {
-    socket.emit('done', fileName);
-  });
-  child.on('error', (err) => {
-    console.log(err);
+};
+
+module.exports.download = (req, res, next) => {
+  res.sendFile(process.env.ROOT_DIRECTORY + 'o-' + req.params.fileName, err => {
+    if (err) {
+      console.log(err);
+    }
+    fs.exists(process.env.ROOT_DIRECTORY + 'o-' + req.params.fileName, exists => {
+      if (exists) {
+        fs.unlink(process.env.ROOT_DIRECTORY + 'o-' + req.params.fileName);
+      }
+    });
+
+    fs.exists(process.env.ROOT_DIRECTORY + req.params.fileName, exists => {
+      if (exists) {
+        fs.unlink(process.env.ROOT_DIRECTORY + req.params.fileName);
+      }
+    });
   });
 };
 
