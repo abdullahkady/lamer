@@ -24,36 +24,7 @@
     }
   </style>
   <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
-  <script>
-    const PORT = 9191;
-    const url = `localhost:${PORT}/upload`;
-    const uploadFile = () => {
-      const formData = new FormData();
-      const imagefile = document.querySelector('#file');
-      const bitRate = document.querySelector('#bitRate').value;
-      formData.append("audioFile", imagefile.files[0]);
-      axios.post('upload', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        }
-      })
-        .then(res => {
-          axios({
-            url: `encode/${bitRate}/${res.data.data.fileName}`,
-            method: 'POST',
-            responseType: 'blob'
-          }).then(response => {
-            const url = window.URL.createObjectURL(new Blob([response.data]));
-            const link = document.createElement('a');
-            link.href = url;
-            link.setAttribute('download', res.data.data.fileName);
-            document.body.appendChild(link);
-            link.click();
-            document.removeChild(link);
-          })
-        })
-    }
-  </script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.1.1/socket.io.slim.js"></script>
 </head>
 
 <body>
@@ -62,6 +33,51 @@
   <br>
   <br>
   <a class="button" onclick="uploadFile()">SUBMIT</a>
+  <br>
+  <hr>
+  <label>Server response: </label>
+  <p id="response"></p>
+  <br>
+  <br>
+  <script>
+    const response = document.querySelector('#response');
+    const PORT = 9191;
+    const url = `localhost:${PORT}/upload`;
+    const uploadFile = () => {
+      const formData = new FormData();
+      const fileInput = document.querySelector('#file');
+      const bitRate = document.querySelector('#bitRate').value;
+
+      formData.append("audioFile", fileInput.files[0]);
+      axios.post('upload', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      })
+        .then(res => {
+          const socket = io.connect(`localhost:9191?bitRate=${bitRate}&file=${res.data.data.fileName}`);
+          socket.on('progress', (data) => {
+            response.innerText = data + '%';
+          });
+          socket.on('done', (outputFile) => {
+            response.innerText = outputFile;
+            // axios({
+            // url: `download/${outputFile}`,
+            // method: 'GET',
+            // responseType: 'blob'
+            // }).then(response => {
+            // const url = window.URL.createObjectURL(new Blob([response.data]));
+            // const link = document.createElement('a');
+            // link.href = url;
+            // link.setAttribute('download', res.data.data.fileName);
+            // document.body.appendChild(link);
+            // link.click();
+            // document.removeChild(link);
+            // })
+          })
+        })
+    }
+  </script>
 </body>
 
 </html>
