@@ -22,13 +22,26 @@
       display: inline-block;
       font-size: 16px;
     }
+
+    #progressbar {
+      background-color: black;
+      border-radius: 13px;
+      padding: 3px;
+    }
+
+    #progressbar>div {
+      background-color: rgb(152, 243, 17);
+      width: 0%;
+      height: 20px;
+      border-radius: 10px;
+    }
   </style>
   <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.1.1/socket.io.slim.js"></script>
 </head>
 
 <body>
-  <input type="file" id="file" name="audioFile" accept="audio/mpeg" />
+  <input type="file" id="file" name="audioFile" />
   <input type="number" id="bitRate" value="64" />
   <br>
   <br>
@@ -39,9 +52,13 @@
   <p id="response"></p>
   <br>
   <br>
+  <div id="progressbar">
+    <div id="progress"></div>
+  </div>
   <script>
     const response = document.querySelector('#response');
     const PORT = 9191;
+    const progressBar = document.querySelector('#progress');
     const uploadFile = () => {
       const formData = new FormData();
       const fileInput = document.querySelector('#file');
@@ -56,7 +73,7 @@
         .then(res => {
           const socket = io.connect(`localhost:9191?bitRate=${bitRate}&file=${res.data.data.fileName}`);
           socket.on('progress', (data) => {
-            response.innerText = data + '%';
+            progressBar.style.width = data + '%';
           });
           socket.on('done', (outputFile) => {
             response.innerText = 'Done, download should start soon';
@@ -68,7 +85,7 @@
               const url = window.URL.createObjectURL(new Blob([response.data]));
               const link = document.createElement('a');
               link.href = url;
-              link.setAttribute('download', originalFileName);
+              link.setAttribute('download', originalFileName.substr(0, originalFileName.lastIndexOf(".")) + ".mp3");
               document.body.appendChild(link);
               link.click();
               document.body.removeChild(link);
