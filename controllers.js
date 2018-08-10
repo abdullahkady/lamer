@@ -10,7 +10,7 @@ const upload = multer({
     if (validateFileType(file)) {
       return cb(null, true);
     }
-    cb('Error: File type not supported');
+    return cb('Error: File type not supported');
   },
   limits: { fileSize: maxSize, },
   storage: multer.diskStorage({
@@ -32,15 +32,21 @@ module.exports.encode = (socket) => {
           socket.emit('progress', progress);
         }
       });
+
       child.on('exit', (code, signal) => {
-        socket.emit('done', fileName);
+        if (code === 0) {
+          socket.emit('done', fileName);
+        }
+        else if (code === 255) {
+          // The audio file headers are invalid
+        }
         fs.exists(process.env.ROOT_DIRECTORY + fileName, exists => {
           if (exists) {
             fs.unlink(process.env.ROOT_DIRECTORY + fileName, err => { if (err) console.log(err); });
           }
         });
-
       });
+
       child.on('error', (err) => {
         console.log(err);
       });
@@ -49,15 +55,19 @@ module.exports.encode = (socket) => {
 };
 
 module.exports.download = (req, res, next) => {
-  res.sendFile(process.env.ROOT_DIRECTORY + 'o-' + req.params.fileName + '.mp3', err => {
-    if (err) {
-      console.log(err);
-    }
-    fs.exists(process.env.ROOT_DIRECTORY + 'o-' + req.params.fileName + '.mp3', exists => {
-      if (exists) {
+  fs.exists(process.env.ROOT_DIRECTORY + 'o-' + req.params.fileName + '.mp3', exists => {
+    if (exists) {
+      res.sendFile(process.env.ROOT_DIRECTORY + 'o-' + req.params.fileName + '.mp3', err => {
+        if (err) {
+          console.log(err);
+        }
         fs.unlink(process.env.ROOT_DIRECTORY + 'o-' + req.params.fileName + '.mp3', err => { if (err) console.log(err); });
-      }
-    });
+      });
+    } else {
+      return res.status(404).json({
+        err: 'File not found'
+      });
+    }
   });
 };
 
@@ -70,7 +80,7 @@ module.exports.upload = (req, res) => {
     }
     if (!req.file) {
       return res.status(422).json({
-        err: 'NO FILE SUPPLIED'
+        err: 'No file supplied'
       });
     }
     return res.status(200).json({
