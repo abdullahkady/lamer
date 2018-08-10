@@ -14,8 +14,8 @@ const upload = multer({
   },
   limits: { fileSize: maxSize, },
   storage: multer.diskStorage({
-    destination: (req, file, cb) => cb(null, './uploads'),
-    filename: (req, file, cb) => cb(null, uuidv4() + file.originalname.substr(file.originalname.lastIndexOf('.')))
+    destination: (req, file, cb) => cb(null, process.env.ROOT_DIRECTORY),
+    filename: (req, file, cb) => cb(null, uuidv4() + extractExtension(file.originalname))
   })
 }).single('audioFile');
 
@@ -112,11 +112,15 @@ const extractProgress = (data) => {
 const validateFileType = (file) => {
   const filetypes = /mp3|wav/;
   const mimetype = filetypes.test(file.mimetype);
-  const fileExt = file.originalname.substr(file.originalname.lastIndexOf('.')).toLowerCase();
+  const fileExt = extractExtension(file.originalname);
   const extname = filetypes.test(fileExt);
 
   if (mimetype && extname) {
     return true;
   }
   return false;
-}; 
+};
+
+const extractExtension = (fileName) => {
+  return fileName.substr(fileName.lastIndexOf('.')).toLowerCase();
+};
