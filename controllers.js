@@ -1,24 +1,23 @@
 
 const { spawn } = require('child_process');
 const uuidv4 = require('uuid/v4');
-/////////////////////////////////////////         MULTER        /////////////////////////////////////////
-const maxSize = 1024 * 1024 * 1024;
 const multer = require('multer');
 const fs = require('fs');
+
+const maxSize = 1024 * 1024 * 100;
 const upload = multer({
   fileFilter: (req, file, cb) => {
-    if ((file.mimetype === 'audio/mpeg' || file.mimetype === 'audio/mp3') && (file.originalname).toLowerCase().split('.').pop() === 'mp3') {
+    if (validateFileType(file)) {
       return cb(null, true);
     }
-    cb('Error: File upload only supports mp3');
+    cb('Error: File type not supported');
   },
   limits: { fileSize: maxSize, },
   storage: multer.diskStorage({
     destination: (req, file, cb) => cb(null, './uploads'),
-    filename: (req, file, cb) => cb(null, uuidv4() + '.mp3')
+    filename: (req, file, cb) => cb(null, uuidv4() + file.originalname.substr(file.originalname.lastIndexOf('.')))
   })
 }).single('audioFile');
-
 
 
 module.exports.encode = (socket) => {
@@ -26,7 +25,7 @@ module.exports.encode = (socket) => {
   const fileName = socket.handshake.query.file;
   fs.exists(process.env.ROOT_DIRECTORY + fileName, exists => {
     if (exists) {
-      const child = spawn('lame', ['-b ' + bitRate, fileName, 'o-' + fileName], { cwd: process.env.ROOT_DIRECTORY });
+      const child = spawn('lame', ['-b ' + bitRate, fileName, 'o-' + fileName + '.mp3'], { cwd: process.env.ROOT_DIRECTORY });
       child.stderr.on('data', (data) => {
         let progress = extractProgress(data = data.toString().trim());
         if (progress) {
@@ -35,6 +34,12 @@ module.exports.encode = (socket) => {
       });
       child.on('exit', (code, signal) => {
         socket.emit('done', fileName);
+        fs.exists(process.env.ROOT_DIRECTORY + fileName, exists => {
+          if (exists) {
+            fs.unlink(process.env.ROOT_DIRECTORY + fileName, err => { if (err) console.log(err); });
+          }
+        });
+
       });
       child.on('error', (err) => {
         console.log(err);
@@ -44,19 +49,13 @@ module.exports.encode = (socket) => {
 };
 
 module.exports.download = (req, res, next) => {
-  res.sendFile(process.env.ROOT_DIRECTORY + 'o-' + req.params.fileName, err => {
+  res.sendFile(process.env.ROOT_DIRECTORY + 'o-' + req.params.fileName + '.mp3', err => {
     if (err) {
       console.log(err);
     }
-    fs.exists(process.env.ROOT_DIRECTORY + 'o-' + req.params.fileName, exists => {
+    fs.exists(process.env.ROOT_DIRECTORY + 'o-' + req.params.fileName + '.mp3', exists => {
       if (exists) {
-        fs.unlink(process.env.ROOT_DIRECTORY + 'o-' + req.params.fileName);
-      }
-    });
-
-    fs.exists(process.env.ROOT_DIRECTORY + req.params.fileName, exists => {
-      if (exists) {
-        fs.unlink(process.env.ROOT_DIRECTORY + req.params.fileName);
+        fs.unlink(process.env.ROOT_DIRECTORY + 'o-' + req.params.fileName + '.mp3', err => { if (err) console.log(err); });
       }
     });
   });
@@ -99,3 +98,15 @@ const extractProgress = (data) => {
     }
   }
 };
+
+const validateFileType = (file) => {
+  const filetypes = /mp3|wav/;
+  const mimetype = filetypes.test(file.mimetype);
+  const fileExt = file.originalname.substr(file.originalname.lastIndexOf('.')).toLowerCase();
+  const extname = filetypes.test(fileExt);
+
+  if (mimetype && extname) {
+    return true;
+  }
+  return false;
+}; 
