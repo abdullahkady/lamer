@@ -1,24 +1,7 @@
 
 const { spawn } = require('child_process');
-const uuidv4 = require('uuid/v4');
-const multer = require('multer');
 const fs = require('fs');
-
-const maxSize = 1024 * 1024 * 100;
-const upload = multer({
-  fileFilter: (req, file, cb) => {
-    if (validateFileType(file)) {
-      return cb(null, true);
-    }
-    return cb('Error: File type not supported');
-  },
-  limits: { fileSize: maxSize, },
-  storage: multer.diskStorage({
-    destination: (req, file, cb) => cb(null, process.env.ROOT_DIRECTORY),
-    filename: (req, file, cb) => cb(null, uuidv4() + extractExtension(file.originalname))
-  })
-}).single('audioFile');
-
+const uploadHandler = require('./uploader');
 
 module.exports.encode = (socket) => {
   const bitRate = socket.handshake.query.bitRate;
@@ -72,7 +55,7 @@ module.exports.download = (req, res, next) => {
 };
 
 module.exports.upload = (req, res) => {
-  upload(req, res, (err) => {
+  uploadHandler(req, res, (err) => {
     if (err) {
       return res.status(404).json({
         err
@@ -107,20 +90,4 @@ const extractProgress = (data) => {
       }
     }
   }
-};
-
-const validateFileType = (file) => {
-  const filetypes = /mp3|wav/;
-  const mimetype = filetypes.test(file.mimetype);
-  const fileExt = extractExtension(file.originalname);
-  const extname = filetypes.test(fileExt);
-
-  if (mimetype && extname) {
-    return true;
-  }
-  return false;
-};
-
-const extractExtension = (fileName) => {
-  return fileName.substr(fileName.lastIndexOf('.')).toLowerCase();
 };
