@@ -1,60 +1,55 @@
-
 const { spawn } = require('child_process');
+const { promisify } = require('util');
 const fs = require('fs');
+const exists = promisify(fs.exists);
 const uploadHandler = require('./uploader');
 
-module.exports.encode = (socket) => {
+const encode = async (socket) => {
   const bitRate = socket.handshake.query.bitRate;
   const fileName = socket.handshake.query.file;
-  fs.exists(process.env.ROOT_DIRECTORY + fileName, exists => {
-    if (exists) {
-      const child = spawn('lame', ['-b ' + bitRate, fileName, 'o-' + fileName + '.mp3'], { cwd: process.env.ROOT_DIRECTORY });
-      child.stderr.on('data', (data) => {
-        let progress = extractProgress(data = data.toString().trim());
-        if (progress) {
-          socket.emit('progress', progress);
-        }
-      });
+  if (await exists(process.env.ROOT_DIRECTORY + fileName)) {
+    const child = spawn('lame', ['-b ' + bitRate, fileName, 'o-' + fileName + '.mp3'], { cwd: process.env.ROOT_DIRECTORY });
+    child.stderr.on('data', (data) => {
+      let progress = extractProgress(data.toString().trim());
+      if (progress) {
+        socket.emit('progress', progress);
+      }
+    });
 
-      child.on('exit', (code, signal) => {
-        if (code === 0) {
-          socket.emit('done', fileName);
-        }
-        else if (code === 255) {
-          // The audio file headers are invalid
-        }
-        fs.exists(process.env.ROOT_DIRECTORY + fileName, exists => {
-          if (exists) {
-            fs.unlink(process.env.ROOT_DIRECTORY + fileName, err => { if (err) console.log(err); });
-          }
-        });
-      });
+    child.on('exit', async (code) => {
+      if (code === 0) {
+        socket.emit('done', fileName);
+      }
+      else if (code === 255) {
+        // The audio file headers are invalid
+      }
+      if (await exists(process.env.ROOT_DIRECTORY + fileName)) {
+        fs.unlink(process.env.ROOT_DIRECTORY + fileName, err => { if (err) console.log(err); });
+      }
+    });
 
-      child.on('error', (err) => {
+    child.on('error', (err) => {
+      console.log(err);
+    });
+  }
+};
+
+const download = async (req, res) => {
+  if (await exists(process.env.ROOT_DIRECTORY + 'o-' + req.params.fileName + '.mp3')) {
+    res.sendFile(process.env.ROOT_DIRECTORY + 'o-' + req.params.fileName + '.mp3', err => {
+      if (err) {
         console.log(err);
-      });
-    }
-  });
+      }
+      fs.unlink(process.env.ROOT_DIRECTORY + 'o-' + req.params.fileName + '.mp3', err => { if (err) console.log(err); });
+    });
+  } else {
+    return res.status(404).json({
+      err: 'File not found'
+    });
+  }
 };
 
-module.exports.download = (req, res, next) => {
-  fs.exists(process.env.ROOT_DIRECTORY + 'o-' + req.params.fileName + '.mp3', exists => {
-    if (exists) {
-      res.sendFile(process.env.ROOT_DIRECTORY + 'o-' + req.params.fileName + '.mp3', err => {
-        if (err) {
-          console.log(err);
-        }
-        fs.unlink(process.env.ROOT_DIRECTORY + 'o-' + req.params.fileName + '.mp3', err => { if (err) console.log(err); });
-      });
-    } else {
-      return res.status(404).json({
-        err: 'File not found'
-      });
-    }
-  });
-};
-
-module.exports.upload = (req, res) => {
+const upload = (req, res) => {
   uploadHandler(req, res, (err) => {
     if (err) {
       return res.status(404).json({
@@ -72,6 +67,8 @@ module.exports.upload = (req, res) => {
   });
 };
 
+export { download, upload, encode };
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /*
@@ -80,14 +77,12 @@ module.exports.upload = (req, res) => {
 */
 
 const extractProgress = (data) => {
-  if (data.length > 6) {
-    if (data.search(/[0-9]{1,10}\/[0-9]{1,10}/) > -1) {
-      const progressMatch = data.match(/[0-9]{1,10}\/[0-9]{1,10}/);
-      const progressAbsolute = progressMatch[0].split('/');
-      const progress = Math.floor(Number(progressAbsolute[0]) / Number(progressAbsolute[1]) * 100);
-      if (!isNaN(progress)) {
-        return progress;
-      }
+  if (data.length > 6 && data.search(/[0-9]{1,10}\/[0-9]{1,10}/) > -1) {
+    const progressMatch = data.match(/[0-9]{1,10}\/[0-9]{1,10}/);
+    const progressAbsolute = progressMatch[0].split('/');
+    const progress = Math.floor(Number(progressAbsolute[0]) / Number(progressAbsolute[1]) * 100);
+    if (!isNaN(progress)) {
+      return progress;
     }
   }
 };
