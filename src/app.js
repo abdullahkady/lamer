@@ -1,7 +1,6 @@
 require('dotenv').config();
 const controllers = require('./controllers');
 
-///////////////////////////////////////// EXPRESS & MIDDLEWARES /////////////////////////////////////////
 const express = require('express');
 const app = express();
 const bodyParser = require('body-parser');
