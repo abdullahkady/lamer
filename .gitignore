@@ -1,4 +1,7 @@
+package-lock.json
+
 uploads/
+
 # Logs
 logs
 *.log
