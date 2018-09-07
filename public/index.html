@@ -1,0 +1,34 @@
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>I'M LAME!</title>
+  <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.1.1/socket.io.slim.js"></script>
+  <link rel="stylesheet" type="text/css" href="css/main.css">
+</head>
+
+<body>
+
+  <input type="file" id="file" name="audioFile" />
+  <input type="number" id="bitRate" value="64" />
+  <br>
+  <br>
+  <a class="button" onclick="uploadFile()">SUBMIT</a>
+  <br>
+  <hr>
+  <label>Server response: </label>
+  <p id="response"></p>
+  <br>
+  <br>
+  <div id="progressbar">
+    <div id="progress"></div>
+  </div>
+  <script>
+  </script>
+</body>
+<script src="js/main.js"></script>
+
+</html>
