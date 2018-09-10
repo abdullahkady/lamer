@@ -16,9 +16,9 @@ app.use(compress());
 app.use(helmet());
 app.use(cors());
 
-app.get('/', (req, res) => res.sendFile('index.html', { root: __dirname + '/../' }));
 app.get('/download/:fileName', controllers.download);
 app.post('/upload', controllers.upload);
+app.use(express.static('public'));
 
 const server = app.listen(process.env.PORT, () => console.log(`Listening on port ${process.env.PORT}`));
 
