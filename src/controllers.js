@@ -67,7 +67,7 @@ const upload = (req, res) => {
   });
 };
 
-module.export = { download, upload, encode };
+module.exports = { download, upload, encode };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 
